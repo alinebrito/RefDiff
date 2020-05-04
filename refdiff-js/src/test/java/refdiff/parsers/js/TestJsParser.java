@@ -270,6 +270,24 @@ public class TestJsParser {
 		assertThat(actual, is(expected));
 	}
 	
+	@Test
+	public void shouldParseFunctionExports() throws Exception {
+		Path basePath = Paths.get("test-data/parser/js/");
+		SourceFolder sources = SourceFolder.from(basePath, Paths.get("ex8.js"));
+		CstRoot root = parser.parse(sources);
+		
+		assertThat(root.getNodes().size(), is(1));
+		CstNode script = root.getNodes().get(0);
+		assertThat(script.getType(), is("File"));
+		
+		CstNode f1 = script.getNodes().get(0);
+		assertThat(f1.getLocalName(), is("f1"));
+		assertThat(f1.getType(), is("Function"));
+		assertThat(f1.getParameters().size(), is(1));
+		assertThat(f1.getParameters().get(0).getName(), is("x"));
+
+	}
+	
 	private CstNodeRelationship rel(CstNodeRelationshipType type, CstNode n1, CstNode n2) {
 		return new CstNodeRelationship(type, n1.getId(), n2.getId());
 	}

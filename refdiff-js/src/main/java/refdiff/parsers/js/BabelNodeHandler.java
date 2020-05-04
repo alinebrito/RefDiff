@@ -1,6 +1,7 @@
 package refdiff.parsers.js;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -14,6 +15,12 @@ import refdiff.core.cst.Stereotype;
 abstract class BabelNodeHandler {
 	
 	public abstract String getLocalName(CstNode cstNode, JsValueV8 esprimaNode);
+	
+	private List<String> reserved_keywords = Arrays.asList("exports");
+	
+	public List<String> getReserved_keywords() {
+		return reserved_keywords;
+	}
 	
 	public boolean isCstNode(JsValueV8 babelAst) {
 		return true;
@@ -267,13 +274,32 @@ abstract class BabelNodeHandler {
 				return JsNodeType.FUNCTION;
 			}
 			
-			public String getLocalName(CstNode cstNode, JsValueV8 babelAst) {
+			private String getLeftLocalName(JsValueV8 babelAst) {
 				JsValueV8 leftNode = babelAst.get("left");
 				String leftNodetype = leftNode.get("type").asString();
 				if ("MemberExpression".equals(leftNodetype)) {
 					return leftNode.get("property").get("name").asString();
 				}
 				return leftNode.get("name").asString();
+			}
+			
+			private String getRightLocalName(JsValueV8 babelAst) {
+				JsValueV8 rightNode = babelAst.get("right");
+				String rightNodeType = rightNode.get("type").asString();
+				if ("FunctionExpression".equals(rightNodeType) && rightNode.has("id")) {
+					return rightNode.get("id").get("name").asString();
+				}
+				return null;
+			}
+			
+			@Override
+			public String getLocalName(CstNode cstNode, JsValueV8 babelAst) {
+				String leftLocalName = this.getLeftLocalName(babelAst);
+				String rightLocalName = this.getRightLocalName(babelAst);
+				if (this.getReserved_keywords().contains(leftLocalName) && rightLocalName != null){//Anonymous function
+					return rightLocalName;
+				}
+				return leftLocalName;
 			}
 			
 			public Set<Stereotype> getStereotypes(CstNode cstNode, JsValueV8 babelAst) {
