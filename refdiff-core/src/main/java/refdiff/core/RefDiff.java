@@ -22,6 +22,14 @@ public class RefDiff {
 	private final CstComparator comparator;
 	private final FilePathFilter fileFilter;
 	
+	public CstComparator getComparator() {
+		return comparator;
+	}
+
+	public FilePathFilter getFileFilter() {
+		return fileFilter;
+	}
+
 	/**
 	 * Build a RefDiff instance with the specified language plugin. E.g.: {@code new RefDiff(new JsParser())}.
 	 * 
