@@ -105,10 +105,14 @@ public class JsPlugin implements LanguagePlugin, Closeable {
 				getCst(0, root, sourceFile, content, astRoot, callerMap);
 				
 				root.forEachNode((calleeNode, depth) -> {
-					if (calleeNode.getType().equals(JsNodeType.FUNCTION) && callerMap.containsKey(calleeNode.getLocalName())) {
-						Set<CstNode> callerNodes = callerMap.get(calleeNode.getLocalName());
-						for (CstNode callerNode : callerNodes) {
-							root.getRelationships().add(new CstNodeRelationship(CstNodeRelationshipType.USE, callerNode.getId(), calleeNode.getId()));
+					if (calleeNode.getType().equals(JsNodeType.FUNCTION)){
+						String location = (calleeNode.getLocation()!= null)? calleeNode.getLocation().getFile().toString() + "." : "";
+						String calleeName = location + calleeNode.getLocalName();
+						if(callerMap.containsKey(calleeName)) {
+							Set<CstNode> callerNodes = callerMap.get(calleeName);
+							for (CstNode callerNode : callerNodes) {
+								root.getRelationships().add(new CstNodeRelationship(CstNodeRelationshipType.USE, callerNode.getId(), calleeNode.getId()));
+							}
 						}
 					}
 				});
@@ -213,13 +217,15 @@ public class JsPlugin implements LanguagePlugin, Closeable {
 		if (callee.get("type").asString().equals("MemberExpression")) {
 			JsValueV8 property = callee.get("property");
 			if (property.get("type").asString().equals("Identifier")) {
-				String calleeName = property.get("name").asString();
+				String location = (container!= null && container.getLocation()!= null)? container.getLocation().getFile().toString() + "." : "";
+				String calleeName =  location + property.get("name").asString();
 				callerMap.computeIfAbsent(calleeName, key -> new HashSet<>()).add(container);
 			} else {
 				// callee is a complex expression, not an identifier
 			}
 		} else if (callee.get("type").asString().equals("Identifier")) {
-			String calleeName = callee.get("name").asString();
+			String location = (container!= null && container.getLocation()!= null)? container.getLocation().getFile().toString() + "." : "";
+			String calleeName = location + callee.get("name").asString();
 			callerMap.computeIfAbsent(calleeName, key -> new HashSet<>()).add(container);
 		} else {
 			// callee is a complex expression, not an identifier
