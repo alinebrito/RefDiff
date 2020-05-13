@@ -2,7 +2,10 @@ package refdiff.examples;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import refdiff.core.RefDiff;
 import refdiff.core.cst.CstNode;
@@ -25,7 +28,7 @@ public class RefDiffRunJs extends RefDiffRun{
 	protected String getPathEntity(CstNode cstNode) {
 		String path = cstNode.getLocation().getFile();
 		path = path.replaceAll("/", ".");
-		path = path.replaceAll(".js", "");
+		//path = path.replaceAll(".js", "");
 		path = path + this.getClassName(cstNode);
 		return path;
 	}
@@ -73,6 +76,7 @@ public class RefDiffRunJs extends RefDiffRun{
 			}
 			
 			List<String> lines = new ArrayList<String>();
+			Map<String, List<String>> map= new HashMap<String, List<String>>();
 			System.out.println("Refactorings: " + cstDiff.getRefactoringRelationships().size());
 			for (Relationship rel : cstDiff.getRefactoringRelationships()) {
 				
@@ -82,6 +86,7 @@ public class RefDiffRunJs extends RefDiffRun{
 				String entity_before_simple_name = rel.getNodeBefore().getLocalName().replaceAll(" ", "");
 				String entity_before_location = rel.getNodeBefore().getLocation().toString();
 				String entity_before_parameters = this.getParameters(rel.getNodeBefore());
+				int entity_before_line = rel.getNodeBefore().getLocation().getLine();
 				
 				//Entity after
 				String entity_after_contains_class = this.isRefactoringInClass(rel.getNodeAfter()).toString();
@@ -89,6 +94,7 @@ public class RefDiffRunJs extends RefDiffRun{
 				String entity_after_simple_name = rel.getNodeAfter().getLocalName().replaceAll(" ", "");
 				String entity_after_location = rel.getNodeAfter().getLocation().toString();
 				String entity_after_parameters = this.getParameters(rel.getNodeAfter());
+				int entity_after_line = rel.getNodeAfter().getLocation().getLine();
 				
 				//Refactoring info
 				String refactoring_level = rel.getNodeAfter().getType();
@@ -110,25 +116,26 @@ public class RefDiffRunJs extends RefDiffRun{
 						entity_before_contains_class + separator +
 						entity_after_contains_class + separator +
 						entity_before_parameters + separator +
-						entity_after_parameters;
+						entity_after_parameters + separator +
+						entity_before_line + separator +
+						entity_after_line;
 				
-//				System.out.println("\n\n");
-//				System.out.println(refactoring_name);
-//				System.out.println(refactoring_level);
-//				System.out.println(entity_before_full_name);
-//				System.out.println(entity_before_contains_class);
-//				System.out.println(entity_before_simple_name);
-//				System.out.println(entity_before_parameters);
-//				System.out.println("--");
-//				System.out.println(entity_after_full_name);
-//				System.out.println(entity_after_contains_class);
-//				System.out.println(entity_after_simple_name);
-//				System.out.println(entity_after_parameters);
-//				
 				lines.add(line);
-//				System.out.println(line);
+				
+//				For tests - Print
+//			    map.computeIfAbsent(entity_before_full_name, k -> new ArrayList<>()).add(entity_after_full_name);
+				
 			}
 			
+//			For tests - Print
+//			for(String key : map.keySet()) {
+//				System.out.println("\nFrom: " + key + "\n>>\nTo: ");
+//				List<String> list = map.get(key);
+//				for(String entity_after : list) {
+//					System.out.println(entity_after);
+//					
+//				}
+//			}
 			UtilFile.writeFile(pathOutput, this.getNameFileCSV(projectName), lines);
 			
 		}
