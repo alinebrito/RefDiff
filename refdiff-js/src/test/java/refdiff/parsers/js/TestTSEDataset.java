@@ -1,6 +1,7 @@
 package refdiff.parsers.js;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 import static refdiff.test.util.CstDiffMatchers.contains;
 import static refdiff.test.util.CstDiffMatchers.doesntContain;
@@ -131,7 +132,25 @@ public class TestTSEDataset {
 
 	@Test
 	public void shouldDetectMoveAndRenameFile() throws Exception {
-		//TODO
+		String projectName = "refdiff-study/vue";
+		String commit = "7b8b0e48f7b3fa1dd3063d4a2cd38c0cde7baa99";
+		File repo = new File(this.tempFolder, projectName);
+		CstDiff diffForCommit = refDiffJs.computeDiffForCommit(repo, commit);
+		printRefactorings(diffForCommit, null);
+		diffForCommit
+		  .getRefactoringRelationships().stream()
+		  .filter(rel -> RelationshipType.MOVE_RENAME.name().equals(rel.getType().name()))
+		  .filter(rel -> JsNodeType.FILE.toString().equals(rel.getNodeAfter().getType()))
+		  .collect(Collectors.toList())
+		  .forEach(rel -> {
+			  assertNotEquals(rel.getNodeBefore().getSimpleName(), rel.getNodeAfter().getSimpleName());
+			  assertNotEquals(rel.getNodeBefore().getNamespace(), rel.getNodeAfter().getNamespace());
+		  });
+		assertThat(diffForCommit, contains(
+			relationship(RelationshipType.MOVE_RENAME,
+				node("src/entries/web-server-renderer.js"),
+				node("src/server/index.js"))
+		));
 	}
 
 	@Test
