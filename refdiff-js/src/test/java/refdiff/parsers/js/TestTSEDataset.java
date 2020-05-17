@@ -40,6 +40,7 @@ public class TestTSEDataset {
     	this.refDiffJs.cloneGitRepository(new File(this.tempFolder, "refdiff-study/react-native"), this.getURL("refdiff-study/react-native"));
     	this.refDiffJs.cloneGitRepository(new File(this.tempFolder, "refdiff-study/vue"), this.getURL("refdiff-study/vue"));
     	this.refDiffJs.cloneGitRepository(new File(this.tempFolder, "refdiff-study/webpack"), this.getURL("refdiff-study/webpack"));
+    	this.refDiffJs.cloneGitRepository(new File(this.tempFolder, "refdiff-study/immutable-js"), this.getURL("refdiff-study/immutable-js"));
     }
     
     private String getURL(final String projectName) {
@@ -48,7 +49,7 @@ public class TestTSEDataset {
     
     private static void printRefactorings(CstDiff diff, RelationshipType type) {
     	for (Relationship rel : diff.getRefactoringRelationships()) {
-    		if(rel.getType().name().equals(type.name())) {
+    		if(type == null || rel.getType().name().equals(type.name())) {
     	   		System.out.println("\n" + rel.getType().name() + " " + rel.getNodeAfter().getType());
         		System.out.println("From: " + String.join(".", CstRootHelper.getNodePath(rel.getNodeBefore())) + "\nTo " + String.join(".", CstRootHelper.getNodePath(rel.getNodeAfter())));
     		}
@@ -136,7 +137,6 @@ public class TestTSEDataset {
 		String commit = "7b8b0e48f7b3fa1dd3063d4a2cd38c0cde7baa99";
 		File repo = new File(this.tempFolder, projectName);
 		CstDiff diffForCommit = refDiffJs.computeDiffForCommit(repo, commit);
-		printRefactorings(diffForCommit, null);
 		diffForCommit
 		  .getRefactoringRelationships().stream()
 		  .filter(rel -> RelationshipType.MOVE_RENAME.name().equals(rel.getType().name()))
@@ -214,6 +214,15 @@ public class TestTSEDataset {
 					node("packages/liveui/liveui.js", "render", "update", "patch"),
 					node("packages/liveui/liveui.js", "_patch"))
 		));
+	}
+	
+	@Test
+	public void shouldNotDetectRefactorings() throws Exception {
+		String projectName = "refdiff-study/immutable-js";
+		String commit = "408365c5f988cd9179b31162a99e0828287e9f74";
+		File repo = new File(this.tempFolder, projectName);
+		CstDiff diffForCommit = refDiffJs.computeDiffForCommit(repo, commit);
+		assertEquals(diffForCommit.getRelationships().size(), 0);
 	}
 
 }
