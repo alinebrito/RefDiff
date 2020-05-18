@@ -30,6 +30,7 @@ import refdiff.core.cst.CstNodeRelationshipType;
 import refdiff.core.cst.CstRoot;
 import refdiff.core.cst.TokenPosition;
 import refdiff.core.cst.TokenizedSource;
+import refdiff.core.diff.CstRootHelper;
 import refdiff.parsers.LanguagePlugin;
 
 public class JsPlugin implements LanguagePlugin, Closeable {
@@ -89,6 +90,51 @@ public class JsPlugin implements LanguagePlugin, Closeable {
 		}
 	}
 	
+	private List<CstNode> findFunctionsSameName(final CstNode calleeNodeOrigin, final CstRoot root){
+		List<CstNode> functionsSameName = new ArrayList<CstNode>();
+		root.forEachNode((calleeNode, depth) -> {
+			if (calleeNode.getType().equals(JsNodeType.FUNCTION) && calleeNode.getLocalName().equals(calleeNodeOrigin.getLocalName()) && 
+					calleeNode.getLocation().getFile().toString().equals(calleeNodeOrigin.getLocation().getFile().toString())){
+				functionsSameName.add(calleeNode);
+			}
+		});
+		return functionsSameName;
+	}
+
+	private String getLocalNamespace(final CstNode cst) {
+		List<String> paths = CstRootHelper.getNodePath(cst);
+		return String.join(".", paths.subList(1, paths.size()-1));
+	}
+
+	private String getLocalNamespace(final CstNode cst, int scopeLevel) {
+		List<String> paths = CstRootHelper.getNodePath(cst);
+		return String.join(".", paths.subList(1, paths.size()+scopeLevel));
+	}
+
+	private CstNode findCandidateSameScope(CstNode callerNode, List<CstNode> calleeNodeSameNameList, int scopeLevel) {
+		String callerScope = this.getLocalNamespace(callerNode, scopeLevel);
+		for(CstNode callee : calleeNodeSameNameList) {
+			if(callerScope.equals(this.getLocalNamespace(callee))) {
+				return callee;
+			}
+		}
+		return null;
+	}
+
+	private CstNode findCalleeCandidate(CstNode callerNode, List<CstNode> calleeNodeSameNameList, int scopeLevel) {
+		CstNode calleeCandidate = findCandidateSameScope(callerNode, calleeNodeSameNameList, scopeLevel);
+		if(calleeCandidate != null) {
+			return calleeCandidate;
+		}
+		else {
+			scopeLevel--;
+			if(Math.abs(scopeLevel) >= CstRootHelper.getNodePath(callerNode).size()) {
+				return null;
+			}
+			return this.findCalleeCandidate(callerNode, calleeNodeSameNameList, scopeLevel);
+		}
+	}
+
 	private void getCst(CstRoot root, SourceFile sourceFile, String content, SourceFileSet sources) throws Exception {
 		try {
 			V8Object babelAst = (V8Object) this.nodeJs.getRuntime().executeJSFunction("parse", content);
@@ -109,9 +155,14 @@ public class JsPlugin implements LanguagePlugin, Closeable {
 						String location = (calleeNode.getLocation()!= null)? calleeNode.getLocation().getFile().toString() + "." : "";
 						String calleeName = location + calleeNode.getLocalName();
 						if(callerMap.containsKey(calleeName)) {
+							List<CstNode> sameNameList = this.findFunctionsSameName(calleeNode, root);
 							Set<CstNode> callerNodes = callerMap.get(calleeName);
 							for (CstNode callerNode : callerNodes) {
-								root.getRelationships().add(new CstNodeRelationship(CstNodeRelationshipType.USE, callerNode.getId(), calleeNode.getId()));
+								CstNode calleeCandidate = this.findCalleeCandidate(callerNode, sameNameList, -1);
+								if((calleeCandidate != null) && (calleeCandidate.getId() == calleeNode.getId())) {
+//									System.out.println(location + this.getLocalNamespace(callerNode, 0) + " calls " + location + this.getLocalNamespace(calleeNode, 0));
+									root.getRelationships().add(new CstNodeRelationship(CstNodeRelationshipType.USE, callerNode.getId(), calleeNode.getId()));
+								}
 							}
 						}
 					}
@@ -216,14 +267,14 @@ public class JsPlugin implements LanguagePlugin, Closeable {
 		JsValueV8 callee = callExpresionNode.get("callee");
 		if (callee.get("type").asString().equals("MemberExpression")) {
 			JsValueV8 property = callee.get("property");
-			if (property.get("type").asString().equals("Identifier")) {
+			if (property.get("type").asString().equals("Identifier") && JsNodeType.FUNCTION.equals(container.getType())) {
 				String location = (container!= null && container.getLocation()!= null)? container.getLocation().getFile().toString() + "." : "";
 				String calleeName =  location + property.get("name").asString();
 				callerMap.computeIfAbsent(calleeName, key -> new HashSet<>()).add(container);
 			} else {
 				// callee is a complex expression, not an identifier
 			}
-		} else if (callee.get("type").asString().equals("Identifier")) {
+		} else if (callee.get("type").asString().equals("Identifier") && JsNodeType.FUNCTION.equals(container.getType())) {
 			String location = (container!= null && container.getLocation()!= null)? container.getLocation().getFile().toString() + "." : "";
 			String calleeName = location + callee.get("name").asString();
 			callerMap.computeIfAbsent(calleeName, key -> new HashSet<>()).add(container);
