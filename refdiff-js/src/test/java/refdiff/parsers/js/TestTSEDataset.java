@@ -222,7 +222,7 @@ public class TestTSEDataset {
 		String commit = "408365c5f988cd9179b31162a99e0828287e9f74";
 		File repo = new File(this.tempFolder, projectName);
 		CstDiff diffForCommit = refDiffJs.computeDiffForCommit(repo, commit);
-		assertEquals(diffForCommit.getRelationships().size(), 0);
+		assertEquals(diffForCommit.getRefactoringRelationships().size(), 0);
 	}
 
 }
