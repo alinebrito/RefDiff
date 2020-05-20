@@ -122,6 +122,9 @@ public class JsPlugin implements LanguagePlugin, Closeable {
 	}
 
 	private CstNode findCalleeCandidate(CstNode callerNode, List<CstNode> calleeNodeSameNameList, int scopeLevel) {
+		if(!JsNodeType.FUNCTION.equals(callerNode.getType())) {
+			return null;
+		}
 		CstNode calleeCandidate = findCandidateSameScope(callerNode, calleeNodeSameNameList, scopeLevel);
 		if(calleeCandidate != null) {
 			return calleeCandidate;
@@ -159,7 +162,7 @@ public class JsPlugin implements LanguagePlugin, Closeable {
 							Set<CstNode> callerNodes = callerMap.get(calleeName);
 							for (CstNode callerNode : callerNodes) {
 								CstNode calleeCandidate = this.findCalleeCandidate(callerNode, sameNameList, -1);
-								if((calleeCandidate != null) && (calleeCandidate.getId() == calleeNode.getId())) {
+								if((calleeCandidate == null) || (calleeCandidate.getId() == calleeNode.getId())) {
 //									System.out.println(location + this.getLocalNamespace(callerNode, 0) + " calls " + location + this.getLocalNamespace(calleeNode, 0));
 									root.getRelationships().add(new CstNodeRelationship(CstNodeRelationshipType.USE, callerNode.getId(), calleeNode.getId()));
 								}
@@ -267,14 +270,14 @@ public class JsPlugin implements LanguagePlugin, Closeable {
 		JsValueV8 callee = callExpresionNode.get("callee");
 		if (callee.get("type").asString().equals("MemberExpression")) {
 			JsValueV8 property = callee.get("property");
-			if (property.get("type").asString().equals("Identifier") && JsNodeType.FUNCTION.equals(container.getType())) {
+			if (property.get("type").asString().equals("Identifier")) {// && JsNodeType.FUNCTION.equals(container.getType())) {
 				String location = (container!= null && container.getLocation()!= null)? container.getLocation().getFile().toString() + "." : "";
 				String calleeName =  location + property.get("name").asString();
 				callerMap.computeIfAbsent(calleeName, key -> new HashSet<>()).add(container);
 			} else {
 				// callee is a complex expression, not an identifier
 			}
-		} else if (callee.get("type").asString().equals("Identifier") && JsNodeType.FUNCTION.equals(container.getType())) {
+		} else if (callee.get("type").asString().equals("Identifier")) {// && JsNodeType.FUNCTION.equals(container.getType())) {
 			String location = (container!= null && container.getLocation()!= null)? container.getLocation().getFile().toString() + "." : "";
 			String calleeName = location + callee.get("name").asString();
 			callerMap.computeIfAbsent(calleeName, key -> new HashSet<>()).add(container);
