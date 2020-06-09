@@ -137,8 +137,42 @@ public class JsPlugin implements LanguagePlugin, Closeable {
 			return this.findCalleeCandidate(callerNode, calleeNodeSameNameList, scopeLevel);
 		}
 	}
-
+	
 	private void getCst(CstRoot root, SourceFile sourceFile, String content, SourceFileSet sources) throws Exception {
+		try {
+			V8Object babelAst = (V8Object) this.nodeJs.getRuntime().executeJSFunction("parse", content);
+			
+			// System.out.print(String.format("Parsing %s ... ", sources.describeLocation(sourceFile)));
+			// long timestamp = System.currentTimeMillis();
+			try (JsValueV8 astRoot = new JsValueV8(babelAst, this::toJson)) {
+				
+				TokenizedSource tokenizedSource = buildTokenizedSourceFromAst(sourceFile, astRoot);
+				root.addTokenizedFile(tokenizedSource);
+				
+				// System.out.println(String.format("Done in %d ms", System.currentTimeMillis() - timestamp));
+				Map<String, Set<CstNode>> callerMap = new HashMap<>();
+				getCst(0, root, sourceFile, content, astRoot, callerMap);
+				
+				root.forEachNode((calleeNode, depth) -> {
+					if (calleeNode.getType().equals(JsNodeType.FUNCTION)){
+						String location = (calleeNode.getLocation()!= null)? calleeNode.getLocation().getFile().toString() + "." : "";
+						String calleeName = location + calleeNode.getLocalName();
+						if(callerMap.containsKey(calleeName)) {
+							Set<CstNode> callerNodes = callerMap.get(calleeName);
+							for (CstNode callerNode : callerNodes) {
+								root.getRelationships().add(new CstNodeRelationship(CstNodeRelationshipType.USE, callerNode.getId(), calleeNode.getId()));
+							}
+						}
+					}
+				});
+			}
+			
+		} catch (Exception e) {
+			throw new RuntimeException(String.format("Error parsing %s: %s", sources.describeLocation(sourceFile), e.getMessage()), e);
+		}
+	}
+
+	private void getCstAndCandidateRelationships(CstRoot root, SourceFile sourceFile, String content, SourceFileSet sources) throws Exception {
 		try {
 			V8Object babelAst = (V8Object) this.nodeJs.getRuntime().executeJSFunction("parse", content);
 			
@@ -270,14 +304,14 @@ public class JsPlugin implements LanguagePlugin, Closeable {
 		JsValueV8 callee = callExpresionNode.get("callee");
 		if (callee.get("type").asString().equals("MemberExpression")) {
 			JsValueV8 property = callee.get("property");
-			if (property.get("type").asString().equals("Identifier")) {// && JsNodeType.FUNCTION.equals(container.getType())) {
+			if (property.get("type").asString().equals("Identifier")) {
 				String location = (container!= null && container.getLocation()!= null)? container.getLocation().getFile().toString() + "." : "";
 				String calleeName =  location + property.get("name").asString();
 				callerMap.computeIfAbsent(calleeName, key -> new HashSet<>()).add(container);
 			} else {
 				// callee is a complex expression, not an identifier
 			}
-		} else if (callee.get("type").asString().equals("Identifier")) {// && JsNodeType.FUNCTION.equals(container.getType())) {
+		} else if (callee.get("type").asString().equals("Identifier")) {
 			String location = (container!= null && container.getLocation()!= null)? container.getLocation().getFile().toString() + "." : "";
 			String calleeName = location + callee.get("name").asString();
 			callerMap.computeIfAbsent(calleeName, key -> new HashSet<>()).add(container);

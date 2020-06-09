@@ -122,17 +122,23 @@ public class RefDiffRunJs extends RefDiffRun{
 				
 				lines.add(line);
 				
+//				if(String.join(".", CstRootHelper.getNodePath(rel.getNodeBefore())).equals("dist/Immutable.js.universalModule.get")) {
+//					System.out.println("\n" + rel.getStandardDescription());
+//					System.out.println("From: " + String.join(".", CstRootHelper.getNodePath(rel.getNodeBefore())) + " Line: " + rel.getNodeBefore().getLocation().getLine());
+//					System.out.println("To: " + String.join(".", CstRootHelper.getNodePath(rel.getNodeAfter())) + " Line: " + rel.getNodeAfter().getLocation().getLine());
+//				}
+
 //				For tests - Print
-//			    map.computeIfAbsent(entity_before_full_name, k -> new ArrayList<>()).add(entity_after_full_name);
+//			    map.computeIfAbsent(entity_before_full_name, k -> new ArrayList<>()).add(entity_after_full_name + " (" + refactoring_name + ")");
 				
 			}
 			
 //			For tests - Print
 //			for(String key : map.keySet()) {
-//				System.out.println("\nFrom: " + key + "\n>>\nTo: ");
+//				System.out.println("\nFrom: " + key);
 //				List<String> list = map.get(key);
 //				for(String entity_after : list) {
-//					System.out.println(entity_after);
+//					System.out.println("To: " + entity_after);
 //					
 //				}
 //			}

@@ -216,13 +216,13 @@ public class TestTSEDataset {
 		));
 	}
 	
-	@Test
-	public void shouldNotDetectRefactorings() throws Exception {
-		String projectName = "refdiff-study/immutable-js";
-		String commit = "408365c5f988cd9179b31162a99e0828287e9f74";
-		File repo = new File(this.tempFolder, projectName);
-		CstDiff diffForCommit = refDiffJs.computeDiffForCommit(repo, commit);
-		assertEquals(diffForCommit.getRefactoringRelationships().size(), 0);
-	}
+//	@Test
+//	public void shouldNotDetectRefactorings() throws Exception {
+//		String projectName = "refdiff-study/immutable-js";
+//		String commit = "408365c5f988cd9179b31162a99e0828287e9f74";
+//		File repo = new File(this.tempFolder, projectName);
+//		CstDiff diffForCommit = refDiffJs.computeDiffForCommit(repo, commit);
+//		assertEquals(diffForCommit.getRefactoringRelationships().size(), 0);
+//	}
 
 }
